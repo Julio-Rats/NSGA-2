@@ -8,11 +8,12 @@ void NSGA_II()
     vector<vector<Indiviual>> frontiers;
     unsigned int number_frontiers;
 
-    ga_sol_population      = random_population(first_man);
+    ga_sol_population               = random_population(first_man);
     unsigned int generation_current = 1;
 
     while (generation_current <= ga_number_generation)
     {
+        std::cout << "Geração " << generation_current << '\n';
         frontiers         = nodominated_sort();
         sort_population   = crowding_distance_assigment(frontiers);
         ga_sol_population = make_new_population(sort_population);
@@ -20,11 +21,76 @@ void NSGA_II()
     }
 }
 
-Indiviual crossover(Indiviual parent1, Indiviual parent2)
+Indiviual* crossover(Indiviual& parent1, Indiviual& parent2)
 {
-    Indiviual new_person;
+    Indiviual* new_person;
+    new_person = new Indiviual[2];
+    if (!new_person)
+    {
+      std::cout << "errr" << '\n';
+      exit(1);
+    }
+    int cross1 = rand()%(length_frames-1);
+    int cross2;
+    do
+    {
+        cross2 = (rand()%length_frames);
+    }while(cross2 == cross1);
 
+    new_person[0].candb_solution = (Frame_CAN*) malloc(sizeof(Frame_CAN)*(length_frames));
+    new_person[1].candb_solution = (Frame_CAN*) malloc(sizeof(Frame_CAN)*(length_frames));
 
+    if ((!new_person[0].candb_solution) || (!new_person[1].candb_solution))
+    {
+        std::cout << "aedad erro" << '\n';
+        exit(2);
+    }
+
+    if (cross1 > cross2)
+    {
+        int temp = cross1;
+        cross1 = cross2;
+        cross2 = temp;
+    }
+
+    for (size_t i = 0; i < length_frames; i++)
+    {
+        if ((i < cross1)||(i > cross2))
+        {
+            new_person[0].candb_solution[i] = parent1.candb_solution[i];
+            new_person[1].candb_solution[i] = parent2.candb_solution[i];
+        }
+        else
+        {
+            new_person[1].candb_solution[i] = parent1.candb_solution[i];
+            new_person[0].candb_solution[i] = parent2.candb_solution[i];
+        }
+    }
+    for (size_t i = 0; i < length_frames; i++)
+    {
+        double mut = ((double)rand()/RAND_MAX);
+        if (mut <= ga_prob_mution)
+        {
+            new_person[0].candb_solution[i].delay_time += (rand()%(11))-5;
+            new_person[1].candb_solution[i].delay_time += (rand()%(11))-5;
+
+            if (new_person[0].candb_solution[i].delay_time < 0)
+                new_person[0].candb_solution[i].delay_time = 0;
+
+            if (new_person[1].candb_solution[i].delay_time < 0)
+                new_person[1].candb_solution[i].delay_time = 0;
+
+            if (new_person[0].candb_solution[i].delay_time > new_person[0].candb_solution[i].deadline_time)
+                new_person[0].candb_solution[i].delay_time = new_person[0].candb_solution[i].deadline_time;
+
+            if (new_person[1].candb_solution[i].delay_time > new_person[1].candb_solution[i].deadline_time)
+                new_person[1].candb_solution[i].delay_time = new_person[1].candb_solution[i].deadline_time;
+        }
+    }
+    parent1.dominated.clear();
+    parent1.transcend = 0;
+    parent2.dominated.clear();
+    parent2.transcend = 0;
     return new_person;
 }
 
@@ -32,7 +98,14 @@ vector<Indiviual> make_new_population(vector<Indiviual> sort_population)
 {
       vector<Indiviual> new_generation;
 
-
+      for (size_t i = 0; i < sort_population.size()-1; i+=2)
+      {
+          Indiviual* sons = crossover(sort_population[i],sort_population[i+1]);
+          new_generation.push_back(sort_population[i]);
+          new_generation.push_back(sort_population[i+1]);
+          new_generation.push_back(sons[0]);
+          new_generation.push_back(sons[1]);
+      }
       return new_generation;
 }
 
@@ -103,7 +176,7 @@ void sort_distance(vector<Indiviual>& sort_list)
         pos_better = i;
         for (size_t j = 0; j < sort_list.size(); j++)
         {
-            if (value < sort_list[j].distance)
+            if (value > sort_list[j].distance)
             {
                 value = sort_list[j].distance;
                 pos_better = j;
@@ -151,7 +224,7 @@ vector<Indiviual> crowding_distance_assigment(vector<vector<Indiviual>> frontier
     for (vector<Indiviual>& front : frontiers)
     {
       sort_distance(front);
-      for (Indiviual e: front)
+      for (Indiviual& e: front)
           if (current_length_population <= (ga_length_population/2))
           {
               sort_population.push_back(e);
@@ -159,7 +232,7 @@ vector<Indiviual> crowding_distance_assigment(vector<vector<Indiviual>> frontier
           }
           else
           {
-              return sort_population;
+              free(e.candb_solution);
           }
     }
     return sort_population;
@@ -226,18 +299,18 @@ vector<Indiviual> random_population(Indiviual person_reference)
     vector<Indiviual>  new_population;
     for (unsigned int i=0; i < ga_length_population; i++)
     {
-        new_person.candb_solution = new Frame_CAN[length_frames];
-        if (!new_person.candb_solution)
-        {
-            std::cerr << "ERRO alocação de memoria para vetor de frames" << '\n';
-            exit(3);
-        }
-        for (unsigned int j=0; j < length_frames; j++)
-        {
-            new_person.candb_solution[j] = person_reference.candb_solution[j];
-            new_person.candb_solution[j].delay_time = (double)(rand()%((int) new_person.candb_solution[j].deadline_time));
-        }
-        new_population.push_back(new_person);
+          new_person.candb_solution = new Frame_CAN[length_frames];
+          if (!new_person.candb_solution)
+          {
+              std::cerr << "ERRO alocação de memoria para vetor de frames" << '\n';
+              exit(3);
+          }
+          for (unsigned int j=0; j < length_frames; j++)
+          {
+              new_person.candb_solution[j] = person_reference.candb_solution[j];
+              new_person.candb_solution[j].delay_time = (double)(rand()%((int) new_person.candb_solution[j].deadline_time));
+          }
+          new_population.push_back(new_person);
     }
     return new_population;
 }
@@ -259,6 +332,24 @@ void run_simulation(Indiviual& person)
     delete(simulator);
 }
 
+void write_arq(vector<vector<Indiviual>> frontiers, const char *path)
+{
+    FILE* archive_front = fopen(path,"w");
+    if (!archive_front)
+    {
+        printf("\n\nERRO ao abrir o aquivo fronteiras.txt\n\n");
+        exit(1);
+    }
+    fprintf(archive_front,"WCRT\tBRUST_SIZE\tTIME_BURST\tN_FRONT\n");
+    for (size_t i = 0; i < frontiers.size(); i++)
+      for (Indiviual& person: frontiers[i])
+      {
+          fprintf(archive_front, "%f\t%f\t%f\t%d\n", person.wcrt, person.frames_burst,
+                    person.time_mean_burst, i);
+      }
+    fclose(archive_front);
+}
+
 int main(int argc, char const *argv[])
 {
     srand(time(NULL));
@@ -269,19 +360,18 @@ int main(int argc, char const *argv[])
         exit(3);
     }
     Frame_CAN* frames = get_CANDB(arq, length_frames);
+    fclose(arq);
     first_man.candb_solution = frames;
 
-    ga_length_population   = 20;
+    ga_length_population   = 200;
     number_funct_objective = 3;
-    ga_sol_population      = random_population(first_man);
-    vector<vector<Indiviual>> aux = nodominated_sort();
-    vector<Indiviual> aux2        = crowding_distance_assigment(aux);
+    ga_number_generation   = 250;
+    ga_prob_mution         = 0.15;
 
-    for (vector<Indiviual> e: aux)
-        std::cout << e.size() << '\n';
+    NSGA_II();
 
-    // std::cout << "leng " << aux2.size() << '\n';
-    std::cout << aux2[0].distance << '\n';
-    std::cout << aux2[aux[0].size()-1].distance << '\n';
+    write_arq(nodominated_sort(), argv[2]);
+
+
     return 0;
 }

@@ -3,11 +3,10 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <list>
 #include <cfloat>
 #include <vector>
 #include <fstream>
-#include "./../Simulador deterministico/simulador.hpp"
+#include "./../Simulador CANbus/simulador.hpp"
 
 #define     LENGTH_CHAR           64
 #define     TIME_SIMULATION       12000
