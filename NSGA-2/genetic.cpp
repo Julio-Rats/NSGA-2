@@ -13,7 +13,7 @@ void NSGA_II()
 
     while (generation_current <= ga_number_generation)
     {
-        std::cout << "Geração " << generation_current << '\n';
+        // std::cout << "Geração " << generation_current << '\n';
         frontiers         = nodominated_sort();
         sort_population   = crowding_distance_assigment(frontiers);
         ga_sol_population = make_new_population(sort_population);
@@ -332,9 +332,9 @@ void run_simulation(Indiviual& person)
     delete(simulator);
 }
 
-void write_arq(vector<vector<Indiviual>> frontiers, const char *path)
+void write_arq(vector<vector<Indiviual>> frontiers, const char *path1, const char *path2)
 {
-    FILE* archive_front = fopen(path,"w");
+    FILE* archive_front = fopen(path1,"w");
     if (!archive_front)
     {
         printf("\n\nERRO ao abrir o aquivo fronteiras.txt\n\n");
@@ -347,7 +347,30 @@ void write_arq(vector<vector<Indiviual>> frontiers, const char *path)
           fprintf(archive_front, "%f\t%f\t%f\t%d\n", person.wcrt, person.frames_burst,
                     person.time_mean_burst, i);
       }
-    fclose(archive_front);
+      fclose(archive_front);
+
+      for (size_t i = 0; i < frontiers[0].size(); i++)
+      {
+          char path_results[64]="";
+          sprintf(path_results, "%s-%d.txt", path2, i);
+
+          FILE* out = fopen(path_results, "w+");
+          if (!out)
+          {
+              std::cout << "\n[ERRO:] Ao criar arquivo de resultados" << "\n\n";
+              exit(10);
+          }
+          fprintf(out, "WCRT\t%lf\n",            frontiers[0][i].wcrt);
+          fprintf(out, "TIME BURST\t%lf\n",      frontiers[0][i].time_mean_burst);
+          fprintf(out, "SIZE BURST\t%lf\n\n",    frontiers[0][i].frames_burst);
+          fprintf(out, "ID_MSG\tCYCLE\tDEADLINE\tSTART_DLY\tPAYLOAD\n");
+          for (size_t j = 0; j < length_frames; j++)
+              fprintf(out,"%u\t%lf\t%lf\t%lf\t%u\n", frontiers[0][i].candb_solution[j].id, frontiers[0][i].candb_solution[j].cycle_time,
+                      frontiers[0][i].candb_solution[j].deadline_time, frontiers[0][i].candb_solution[j].delay_time,
+                      frontiers[0][i].candb_solution[j].payload_frame);
+
+          fclose(out);
+      }
 }
 
 int main(int argc, char const *argv[])
@@ -359,18 +382,19 @@ int main(int argc, char const *argv[])
         std::cerr << "\nERRO AO ABRIR O ARQUIVO\n" << '\n';
         exit(3);
     }
+
     Frame_CAN* frames = get_CANDB(arq, length_frames);
     fclose(arq);
     first_man.candb_solution = frames;
 
-    ga_length_population   = 200;
+    ga_length_population   = 120;
     number_funct_objective = 3;
-    ga_number_generation   = 250;
-    ga_prob_mution         = 0.15;
+    ga_number_generation   = 310;
+    ga_prob_mution         = 0.19;
 
     NSGA_II();
 
-    write_arq(nodominated_sort(), argv[2]);
+    write_arq(nodominated_sort(), argv[2], argv[3]);
 
 
     return 0;

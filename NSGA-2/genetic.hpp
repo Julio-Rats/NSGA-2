@@ -36,7 +36,7 @@ Variaveis de controle do algoritimo genetico
 
 *******************************************************************/
 
-unsigned int          length_frames;      // Numero de frames na solução
+u_int16_t             length_frames;      // Numero de frames na solução
 unsigned int          length_frontier;    // Numero de soluções na nuvem de soluções
 unsigned int          ga_length_population;
 unsigned int          ga_number_generation;
